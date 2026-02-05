@@ -744,7 +744,7 @@ const resetWheel = () => {
 
 // celebration effect
 const triggerConfetti = () => {
-  const duration = 3000;
+  const duration = 2000;
   const end = Date.now() + duration;
 
   (function frame() {
@@ -1174,8 +1174,8 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     line-height: 1;
-    min-width: 40px;
-    min-height: 36px;
+    width: 40px;
+    height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1916,6 +1916,8 @@ body {
     .help-toggle {
       min-width: 36px;
       min-height: 32px;
+      width: 36px;
+      height: 36px;
       font-size: 1rem;
       padding: 0.3rem 0.4rem;
     }
