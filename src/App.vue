@@ -388,6 +388,20 @@ const handleTouchStart = (e) => {
   isTouching.value = true;
 };
 
+const handleTouchMove = (e) => {
+  if (!isTouching.value || isSpinning.value) return;
+  
+  const touch = e.touches[0];
+  const deltaY = touchStartY.value - touch.clientY;
+  const deltaTime = Date.now() - touchStartTime.value;
+  const velocity = Math.abs(deltaY) / deltaTime;
+  
+  // Only prevent default if it looks like a spin gesture (fast upward swipe)
+  if (velocity > 0.3 && deltaY > 30) {
+    e.preventDefault();
+  }
+};
+
 const handleTouchEnd = (e) => {
   if (!isTouching.value || isSpinning.value) return;
   
@@ -400,8 +414,9 @@ const handleTouchEnd = (e) => {
   // Calculate velocity (pixels per millisecond)
   const velocity = Math.abs(deltaY) / deltaTime;
   
-  // Trigger spin if swipe is fast enough (velocity > 0.5) and distance > 50px
-  if (velocity > 0.5 && Math.abs(deltaY) > 50) {
+  // Trigger spin if swipe is fast enough (velocity > 0.5) and distance > 50px (upward only)
+  if (velocity > 0.5 && deltaY > 50) {
+    e.preventDefault();
     startSpin();
   }
 };
@@ -893,8 +908,9 @@ const triggerConfetti = () => {
       <div 
         ref="wheelContainer"
         class="wheel-container"
-        @touchstart.prevent="handleTouchStart"
-        @touchend.prevent="handleTouchEnd"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
       >
         <div class="pointer"></div>
         <div class="swipe-hint" v-if="!isSpinning && items.length >= 2">
@@ -996,29 +1012,70 @@ const triggerConfetti = () => {
   --text: #ffffff;
 }
 
+html {
+  overflow-x: hidden;
+  background-color: var(--bg-color);
+}
+
 body {
   margin: 0;
   background-color: var(--bg-color);
   color: var(--text);
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   overflow: hidden; /* prevent scrollbars during rotation */
+  min-height: 100vh;
+  
+  @media (max-width: 768px) {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 .app-container {
   display: flex;
   height: 100vh;
-  width: 100vw;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   transition: all 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
   
+  @media (max-width: 768px) {
+    height: auto;
+    min-height: 100vh;
+    flex-direction: column;
+    width: 100%;
+  }
+  
   &.mode-spin {
+    overflow: hidden;
+    
     .control-panel {
-      // opacity: 0;
-      // transform: translateX(-50px);
+      transform: translateX(-110%);
+      opacity: 0;
       pointer-events: none;
+      margin-right: 0;
+      z-index: 1;
+      transition: transform 0.4s ease, margin 0.4s ease;
     }
     .wheel-stage {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      transform: scale(1.1);
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      transition: all 0.5s ease 0.1s;
+    }
+    .wheel-container {
+      width: min(85vh, 85vw);
+      height: min(85vh, 85vw);
+      transition: width 0.5s ease 0.1s, height 0.5s ease 0.1s;
     }
     // darken background for focus
     &::after {
@@ -1028,14 +1085,57 @@ body {
       background: rgba(0,0,0,0.5);
       z-index: 5;
       pointer-events: none;
+      animation: fadeInOverlay 0.5s ease 0.4s both;
+    }
+    
+    @media (max-width: 768px) {
+      height: 100vh;
+      overflow: hidden;
+      
+      .control-panel {
+        transform: translateY(100%);
+        opacity: 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        max-height: 30vh;
+        padding: 0.8rem 1rem;
+        border-radius: 16px 16px 0 0;
+        z-index: 15;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+      
+      .wheel-stage {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        min-height: 100vh;
+        transition: all 0.5s ease 0.2s;
+      }
+      
+      .wheel-container {
+        width: min(90vw, 75vh);
+        height: min(90vw, 75vh);
+        max-width: calc(100vw - 2rem);
+        transition: width 0.5s ease 0.2s, height 0.5s ease 0.2s;
+      }
     }
   }
 }
 
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* left control panel */
 .control-panel {
-  width: 340px;
-  margin-left: -10px;
+  width: 360px;
+  margin-left: 0;
+  margin-right: 1.5rem;
   background: var(--panel-bg);
   padding: 2rem;
   display: flex;
@@ -1043,7 +1143,9 @@ body {
   gap: 1.25rem;
   box-shadow: 5px 0 20px rgba(0,0,0,0.3);
   z-index: 10;
-  transition: all 0.5s ease;
+  transition: transform 0.4s ease, opacity 0.4s ease, margin 0.4s ease, width 0.4s ease;
+  flex-shrink: 0;
+  overflow: hidden;
 
   .header-row {
     display: flex;
@@ -1136,15 +1238,18 @@ body {
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 0.8rem;
+    min-width: 0;
     
     label {
       font-size: 0.9rem;
       color: #888;
       white-space: nowrap;
+      flex-shrink: 0;
     }
     
     input {
       flex: 1;
+      min-width: 0;
       background: rgba(0,0,0,0.3);
       border: 1px solid #444;
       border-radius: 6px;
@@ -1403,11 +1508,14 @@ body {
   position: relative;
   transition: all 0.8s ease;
   z-index: 6; /* ensure above overlay */
+  overflow: hidden;
+  min-width: 0; /* prevent flex item from overflowing */
 }
 
 .wheel-container {
-  width: min(80vh, 80vw);
-  height: min(80vh, 80vw);
+  width: min(75vh, 70vw);
+  height: min(75vh, 70vw);
+  max-width: 100%;
   position: relative;
   /* wheel outer glow */
   border-radius: 50%;
@@ -1415,6 +1523,7 @@ body {
   /* enable touch */
   touch-action: none;
   cursor: grab;
+  transition: width 0.5s ease, height 0.5s ease;
   
   &:active {
     cursor: grabbing;
@@ -1736,6 +1845,30 @@ body {
   50% { opacity: 0.5; }
 }
 
+/* RWD: tablet setting */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .control-panel {
+    width: 320px;
+    padding: 1.5rem;
+    margin-right: 1rem;
+    gap: 1rem;
+    
+    .title {
+      font-size: 2.5rem;
+    }
+    
+    .drawer-input {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.3rem;
+      
+      label {
+        font-size: 0.85rem;
+      }
+    }
+  }
+}
+
 /* Vue transition */
 .fade-enter-active,
 .fade-leave-active {
@@ -1749,33 +1882,150 @@ body {
 
 /* RWD: mobile setting */
 @media (max-width: 768px) {
-  .app-container {
-    flex-direction: column-reverse;
-  }
-  
   .control-panel {
     width: 100%;
-    height: 40%;
+    height: auto;
+    min-height: auto;
+    margin-left: 0;
+    margin-right: 0;
     padding: 1rem;
     box-sizing: border-box;
     z-index: 20;
+    order: 2; /* control panel below wheel */
+    flex-shrink: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 
     .header-row {
-      align-items: flex-start;
+      align-items: center;
+      flex-wrap: wrap;
     }
     
-    .title { font-size: 2rem; display: inline-block; margin-right: 0.5rem;}
-    .spin-btn { padding: 0.8rem; font-size: 1.2rem; }
+    .title { 
+      font-size: 1.8rem; 
+      display: inline-block; 
+      margin-right: 0.5rem;
+    }
+    
+    .audio-toggles {
+      flex-wrap: nowrap;
+    }
+    
+    .sound-toggle,
+    .music-toggle,
+    .lang-toggle,
+    .help-toggle {
+      min-width: 36px;
+      min-height: 32px;
+      font-size: 1rem;
+      padding: 0.3rem 0.4rem;
+    }
+    
+    .current-indicator {
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+      
+      .value {
+        font-size: 2rem;
+      }
+    }
+    
+    .input-group {
+      flex: none;
+      
+      textarea {
+        min-height: 100px;
+        max-height: 150px;
+      }
+      
+      .input-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+      }
+      
+      .header-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+    }
+    
+    .drawer-input {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.3rem;
+      margin-bottom: 0.6rem;
+      
+      label {
+        font-size: 0.8rem;
+      }
+    }
+    
+    .spin-btn { 
+      padding: 0.8rem; 
+      font-size: 1.2rem; 
+    }
+    
+    .history-btn {
+      padding: 0.6rem;
+      font-size: 0.9rem;
+    }
   }
 
   .wheel-stage {
-    flex: 1;
+    flex: none;
     width: 100%;
+    min-height: 50vh;
+    padding: 1rem 0;
+    order: 1; /* wheel on top */
+    overflow: hidden;
   }
   
   .wheel-container {
-    width: min(90vw, 50vh);
-    height: min(90vw, 50vh);
+    width: min(85vw, 45vh);
+    height: min(85vw, 45vh);
+    max-width: calc(100vw - 2rem);
+    touch-action: pan-x; /* allow vertical scroll, horizontal pan */
+  }
+  
+  .swipe-hint {
+    font-size: 0.85rem;
+    
+    span:first-child {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .pointer {
+    right: -15px;
+    border-top: 15px solid transparent;
+    border-bottom: 15px solid transparent;
+    border-right: 30px solid #fff;
+  }
+  
+  .footer {
+    position: relative;
+    padding: 1rem 0 1.5rem;
+    margin-top: 0.5rem;
+  }
+  
+  .result-box {
+    padding: 2rem 2.5rem;
+    margin: 1rem;
+    max-width: 90vw;
+    
+    .result-value {
+      font-size: 2.5rem;
+    }
+    
+    .result-label {
+      font-size: 1.2rem;
+    }
+  }
+  
+  .history-box,
+  .help-box {
+    margin: 1rem;
+    max-height: 80vh;
   }
 }
 </style>
