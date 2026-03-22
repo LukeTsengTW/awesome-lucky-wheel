@@ -8,6 +8,8 @@ Live demo: https://luketsengtw.github.io/awesome-lucky-wheel/
 
 ## Features
 
+demo video: https://www.youtube.com/watch?v=aOYqbSaYKOE
+
 1. You can customize the **Drawer**, allowing only the Drawer to participate in the draw among multiple options.
 2. You can customize a message, which will appear together in the winner announcement window.
 3. You can use **Auto Fill** to automatically generate prize options by setting a prefix, suffix, and a numeric range.
