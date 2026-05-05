@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import confetti from 'canvas-confetti';
 
 // --- data and state management ---
@@ -265,6 +265,17 @@ const colors = [
   '#FF3300', '#33FF00', '#0066FF', '#FF00CC', '#EEEE00'
 ];
 
+const CONFETTI_BURSTS = [
+  { delay: 0, particleCount: 28, spread: 58, startVelocity: 52, scalar: 0.95 },
+  { delay: 140, particleCount: 24, spread: 64, startVelocity: 48, scalar: 0.9 },
+  { delay: 300, particleCount: 20, spread: 70, startVelocity: 44, scalar: 0.85 },
+  { delay: 500, particleCount: 16, spread: 76, startVelocity: 40, scalar: 0.8 }
+];
+
+let confettiCanvas = null;
+let confettiLauncher = null;
+let confettiTimers = [];
+
 // --- sound effects ---
 const soundEnabled = ref(true);
 const musicEnabled = ref(true);
@@ -421,6 +432,38 @@ const handleTouchEnd = (e) => {
   }
 };
 
+const getConfettiLauncher = () => {
+  if (confettiLauncher) return confettiLauncher;
+
+  confettiCanvas = document.createElement('canvas');
+  confettiCanvas.className = 'celebration-confetti-canvas';
+  confettiCanvas.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(confettiCanvas);
+
+  confettiLauncher = confetti.create(confettiCanvas, {
+    resize: true
+  });
+
+  return confettiLauncher;
+};
+
+const clearConfettiTimers = () => {
+  confettiTimers.forEach(timer => window.clearTimeout(timer));
+  confettiTimers = [];
+};
+
+const resetConfetti = () => {
+  clearConfettiTimers();
+  confettiLauncher?.reset?.();
+};
+
+const destroyConfetti = () => {
+  resetConfetti();
+  confettiCanvas?.remove();
+  confettiCanvas = null;
+  confettiLauncher = null;
+};
+
 onMounted(() => {
   const saved = localStorage.getItem('lucky-wheel-data');
   if (saved) rawInput.value = saved;
@@ -478,6 +521,11 @@ onMounted(() => {
   document.addEventListener('pointerdown', registerUserInteraction, { once: true });
   document.addEventListener('keydown', registerUserInteraction, { once: true });
   document.addEventListener('touchstart', registerUserInteraction, { once: true });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleKeydown);
+  destroyConfetti();
 });
 
 watch(rawInput, (newVal) => {
@@ -603,6 +651,7 @@ const startSpin = async () => {
   // Play click sound
   userInteracted.value = true;
   playClickSound();
+  resetConfetti();
 
   isSpinning.value = true;
   showResult.value = false;
@@ -659,6 +708,7 @@ const startSpin = async () => {
 
   // set delay to show result (match CSS transition 5s)
   setTimeout(() => {
+    isSpinning.value = false;
     winner.value = items.value[winnerIndex];
     addHistoryRecord(winner.value);
     triggerConfetti();
@@ -733,6 +783,7 @@ const trackRotation = () => {
 };
 
 const resetWheel = () => {
+  resetConfetti();
   if (removeWinnerMode.value && winnerToRemove.value) {
     removeWinnerFromInput(winnerToRemove.value);
     winnerToRemove.value = null;
@@ -744,29 +795,40 @@ const resetWheel = () => {
 
 // celebration effect
 const triggerConfetti = () => {
-  const duration = 2000;
-  const end = Date.now() + duration;
+  const launch = getConfettiLauncher();
 
-  (function frame() {
-    confetti({
-      particleCount: 5,
-      angle: 60,
-      spread: 55,
-      origin: { x: 0 },
-      colors: colors
-    });
-    confetti({
-      particleCount: 5,
-      angle: 120,
-      spread: 55,
-      origin: { x: 1 },
-      colors: colors
-    });
+  CONFETTI_BURSTS.forEach((burst) => {
+    const timer = window.setTimeout(() => {
+      confettiTimers = confettiTimers.filter(item => item !== timer);
 
-    if (Date.now() < end) {
-      requestAnimationFrame(frame);
-    }
-  }());
+      const baseOptions = {
+        colors,
+        particleCount: burst.particleCount,
+        spread: burst.spread,
+        startVelocity: burst.startVelocity,
+        decay: 0.91,
+        gravity: 0.88,
+        ticks: 115,
+        scalar: burst.scalar,
+        zIndex: 130
+      };
+
+      launch({
+        ...baseOptions,
+        angle: 60,
+        drift: 0.6,
+        origin: { x: 0, y: 0.72 }
+      });
+      launch({
+        ...baseOptions,
+        angle: 120,
+        drift: -0.6,
+        origin: { x: 1, y: 0.72 }
+      });
+    }, burst.delay);
+
+    confettiTimers.push(timer);
+  });
 };
 </script>
 
@@ -1033,6 +1095,17 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+.celebration-confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+  z-index: 130;
+  contain: strict;
 }
 
 .app-container {
