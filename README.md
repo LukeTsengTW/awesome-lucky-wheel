@@ -6,6 +6,24 @@ A practical and flexible lucky wheel web app built with Vue 3 + Vite. It support
 
 Live demo: https://luketsengtw.github.io/awesome-lucky-wheel/
 
+## SEO / Google Indexing
+
+This project includes search-friendly metadata in [index.html](index.html), plus:
+
+- Canonical URL: `https://luketsengtw.github.io/awesome-lucky-wheel/`
+- Sitemap: `https://luketsengtw.github.io/awesome-lucky-wheel/sitemap.xml`
+- Robots hint: `https://luketsengtw.github.io/awesome-lucky-wheel/robots.txt`
+- JSON-LD `WebApplication` structured data
+- Open Graph and Twitter preview metadata
+
+After deployment, verify the property in Google Search Console and submit:
+
+```text
+https://luketsengtw.github.io/awesome-lucky-wheel/sitemap.xml
+```
+
+Note: for GitHub Pages project sites, crawlers normally look for `robots.txt` at the domain root (`https://luketsengtw.github.io/robots.txt`). The project-level file is still generated for transparency, but Search Console sitemap submission is the reliable indexing signal for this URL.
+
 ## Features
 
 1. You can customize the **Drawer**, allowing only the Drawer to participate in the draw among multiple options.

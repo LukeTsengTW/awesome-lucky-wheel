@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /awesome-lucky-wheel/
+
+Sitemap: https://luketsengtw.github.io/awesome-lucky-wheel/sitemap.xml

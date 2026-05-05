@@ -1,1 +1,23 @@
-{"name":"Lucky Wheel - A Convenient Online Lottery","short_name":"Lucky Wheel","icons":[{"src":"/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],"theme_color":"#ffffff","background_color":"#ffffff","display":"standalone"}
+{
+  "name": "Lucky Wheel 免費線上抽籤轉盤",
+  "short_name": "Lucky Wheel",
+  "description": "免費線上幸運轉盤與抽籤工具，支援權重抽獎、自動產生選項、移除得獎者與歷史紀錄。",
+  "start_url": "/awesome-lucky-wheel/",
+  "scope": "/awesome-lucky-wheel/",
+  "lang": "zh-Hant-TW",
+  "icons": [
+    {
+      "src": "/awesome-lucky-wheel/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/awesome-lucky-wheel/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#16213e",
+  "background_color": "#1a1a2e",
+  "display": "standalone"
+}
